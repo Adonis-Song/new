@@ -1,0 +1,5 @@
+./build
+./dep-library/*
+build/*
+.idea/*
+.idea
