@@ -28,6 +28,9 @@ set(GAME_src ${GLAD_src} games.cpp)
 
 add_executable(game ${GAME_src})
 
+add_executable(test ${GLAD_src} test.cpp)
+
 target_link_libraries(game ${APPLE_LIBS} ${RENDER_LIBRARY})
+target_link_libraries(test ${APPLE_LIBS} ${RENDER_LIBRARY})
 
 
