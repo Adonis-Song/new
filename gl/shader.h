@@ -17,6 +17,8 @@ public:
     //使用/激活程序
     void use();
 
+    void setUniform1f(const char* uName, float value);
+
 private:
     unsigned int initShader(const char* code, unsigned int type);
     bool checkCompileErrors(unsigned int shader, const std::string type);

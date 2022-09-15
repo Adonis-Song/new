@@ -3,11 +3,26 @@
 extern "C" {
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <unistd.h>
 }
-#include "shader.h"
+#include "gl/shader.h"
+#include "gl/vertex_control.h"
+#include "util/util.h"
 
 #define WINDOW_W 800
 #define WINDOW_H 600
+#define RENDER_FPS 30;
+
+int stop;
+void processInput(GLFWwindow *window, double* last_pass_time)
+{
+    if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS)
+    {
+        stop = stop ? 0 : 1;
+        std::cout << "pass " <<  std::endl;
+        *last_pass_time = glfwGetTime();
+    }
+}
 
 int main() {
     //初始化一个窗口
@@ -27,7 +42,6 @@ int main() {
     }
     glfwMakeContextCurrent(windows);
 
-
     //初始化glad
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -39,60 +53,70 @@ int main() {
     //设置视口大小
     glViewport(0, 0, WINDOW_W, WINDOW_H);
 
-
-    //开始搞三角形
     //创建VBO
     float vertices[] = {
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f,
-            0.0f, 0.5f, 0.0f,
-            0.0f, -1.f, 0.0f
+            0.5f, 0.5f, 0.0f,  0.1f, 0.2f, 0.3f,    1.0f, 1.0f,   // 右上
+            0.5f, -0.5f, 0.0f,   0.1f, 0.3f, 0.5f,    1.0f, 0.0f,   // 右下
+            -0.5f, -0.5f, 0.0f,    0.1f, 0.6f, 0.8f,    0.0f, 0.0f,   // 左下
+            -0.5f, 0.5f, 0.0f,    0.1f, 0.3f, 0.3f,    0.0f, 1.0f    // 左上
     };
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-//    glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_STATIC_DRAW);
-
-    //创建VAO
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    //创建EBO
     unsigned int indices[] = {
-            0, 1, 2,
-            0, 1, 3
+            1, 2, 0,
+            0, 2, 3
     };
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);//这里会把EBO绑定到VAO上
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (indices), indices, GL_STATIC_DRAW);
-
-    //设置顶点数据的类型
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof (float), nullptr);//这里会把VBO绑定到VAO上
-    glEnableVertexAttribArray(0);
+    int vboDataIndex[] = {3, 3, 2};
+    vertex_control vctl;
+    vctl.createVertex(sizeof (vboDataIndex) / sizeof (int),
+                      vboDataIndex,
+                      vertices,
+                      sizeof (vertices));
+    vctl.addEbo(indices, sizeof (indices));
 
     shader triangleShader("./triangle.vs", "./triangle.fs");
     triangleShader.use();
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);//将EBO重新绑定到VAO中
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    //设置各种环绕方式
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    int width, height, nrChannels;
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    unsigned char *data = util::extractImageFromFile("container2.jpg", &width, &height, &nrChannels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    util::freeImage(data);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
+    int time = 0;
+    double current_time = glfwGetTime();
+    double last_time = current_time;
+    double last_pass_time = current_time;
+    double interval_time = 1. / RENDER_FPS;
     while (!glfwWindowShouldClose(windows))
     {
-        glfwSwapBuffers(windows);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindVertexArray(VAO);
-//        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        current_time = glfwGetTime();
+        if (current_time - last_time < interval_time)
+        {
+            int sleeptime = (interval_time - current_time + last_time) * 1000000;
+            usleep(sleeptime);
+        }
+        if (current_time - last_pass_time > 0.2)
+            processInput(windows, &last_pass_time);
 
+        if (!stop) {
+            glClearColor(0.2f, 0.3f, 0.3f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+//            triangleShader.setUniform1f("time", (float)(time ++ % 11));
+            glfwSwapBuffers(windows);
+        }
         glfwPollEvents();
+        last_time = glfwGetTime();
     }
 
     glfwTerminate();

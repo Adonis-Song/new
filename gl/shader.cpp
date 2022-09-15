@@ -53,6 +53,15 @@ void shader::use()
         glUseProgram(ID);
 }
 
+void shader::setUniform1f(const char* uName, float value)
+{
+    if (ID <= 0)
+        return;
+    int uLocation = glGetUniformLocation(ID, uName);
+    glUseProgram(ID);
+    glUniform1f(uLocation, value);//设置之前 必须先use这个program
+}
+
 unsigned int shader::initShader(const char *code, unsigned int type)
 {
     unsigned int shader;

@@ -19,7 +19,9 @@ set(RENDER_LIBRARY glfw3)
 
 set(GLAD_src ./dep/glad/src/glad.c)
 set(GLAD_header ./dep/glad/include)
-set(UTIL_src shader.cpp)
+file(GLOB Gl_SOURCE
+        gl/*.cpp)
+set(UTIL_src ${Gl_SOURCE} ./util/util.cpp)
 
 include_directories(${RENDER_INCLUDE}
         ${GLAD_header})
@@ -52,7 +54,8 @@ endmacro()
 if(APPLE)
     file(GLOB SHADERS
             "res/shader/*.vs"
-            "res/shader/*.fs")
+            "res/shader/*.fs"
+            "res/image/*.jpg")
     foreach(SHADER ${SHADERS})
         get_filename_component(SHADERNAME ${SHADER} NAME)
         makeLink(${SHADER} ${CMAKE_BINARY_DIR}/bin/${SHADERNAME} GAME)
