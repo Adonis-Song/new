@@ -2,12 +2,12 @@
 out vec4 FragColor;
 in vec3 outColor;
 in vec2 TexCoord;
-uniform float time;
-uniform sampler2D ourTexture;
+uniform sampler2D boxTexture;
+uniform sampler2D smallTexture;
 
 void main()
 {
-    float bias = (time - 5.f) * 0.1f;
 //     FragColor = vec4(outColor.x + bias, outColor.y + bias, outColor.z + bias , 1.0f);
-    FragColor = texture(ourTexture, TexCoord);
+    FragColor = mix(texture(boxTexture, TexCoord), texture(smallTexture, TexCoord), 0.2f);
+//     FragColor = texture(smallTexture, TexCoord);
 }

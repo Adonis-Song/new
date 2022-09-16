@@ -28,6 +28,8 @@ include_directories(${RENDER_INCLUDE}
 
 link_directories(${RENDER_LIBRARY_path})
 
+include_directories(./dep)
+
 set(GAME_src ${GLAD_src} ${UTIL_src} games.cpp)
 set(TEST_src ${GLAD_src} test.cpp)
 
@@ -55,7 +57,7 @@ if(APPLE)
     file(GLOB SHADERS
             "res/shader/*.vs"
             "res/shader/*.fs"
-            "res/image/*.jpg")
+            "res/image/*")
     foreach(SHADER ${SHADERS})
         get_filename_component(SHADERNAME ${SHADER} NAME)
         makeLink(${SHADER} ${CMAKE_BINARY_DIR}/bin/${SHADERNAME} GAME)

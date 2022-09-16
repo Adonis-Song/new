@@ -62,6 +62,15 @@ void shader::setUniform1f(const char* uName, float value)
     glUniform1f(uLocation, value);//设置之前 必须先use这个program
 }
 
+void shader::setUniform1i(const char *uName, int value)
+{
+    if (ID <= 0)
+        return;
+    int uLocation = glGetUniformLocation(ID, uName);
+    glUseProgram(ID);
+    glUniform1i(uLocation, value);//设置之前 必须先use这个program
+}
+
 unsigned int shader::initShader(const char *code, unsigned int type)
 {
     unsigned int shader;
@@ -97,4 +106,13 @@ bool shader::checkCompileErrors(unsigned int shader, const std::string type)
         }
     }
     return !success;
+}
+
+void shader::setUniform4fv(const char* name, float *data)
+{
+    int uLocation = glGetUniformLocation(ID, name);
+    glad_glUniformMatrix4fv(uLocation,
+                            1,
+                            GL_FALSE,
+                            data);
 }

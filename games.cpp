@@ -9,6 +9,10 @@ extern "C" {
 #include "gl/vertex_control.h"
 #include "util/util.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #define WINDOW_W 800
 #define WINDOW_H 600
 #define RENDER_FPS 30;
@@ -51,14 +55,14 @@ int main() {
     }
 
     //设置视口大小
-    glViewport(0, 0, WINDOW_W, WINDOW_H);
+    glViewport(0, 0, WINDOW_W * 2, WINDOW_H * 2);
 
     //创建VBO
     float vertices[] = {
-            0.5f, 0.5f, 0.0f,  0.1f, 0.2f, 0.3f,    1.0f, 1.0f,   // 右上
+            0.5f, 0.5f, 0.0f,  0.1f, 0.2f, 0.3f,      1.0f, 1.0f,   // 右上
             0.5f, -0.5f, 0.0f,   0.1f, 0.3f, 0.5f,    1.0f, 0.0f,   // 右下
-            -0.5f, -0.5f, 0.0f,    0.1f, 0.6f, 0.8f,    0.0f, 0.0f,   // 左下
-            -0.5f, 0.5f, 0.0f,    0.1f, 0.3f, 0.3f,    0.0f, 1.0f    // 左上
+            -0.5f, -0.5f, 0.0f,    0.1f, 0.6f, 0.8f,  0.0f, 0.0f,   // 左下
+            -0.5f, 0.5f, 0.0f,    0.1f, 0.3f, 0.3f,   0.0f, 1.0f    // 左上
     };
     unsigned int indices[] = {
             1, 2, 0,
@@ -75,24 +79,43 @@ int main() {
     shader triangleShader("./triangle.vs", "./triangle.fs");
     triangleShader.use();
 
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    unsigned int texture[2];
+    glGenTextures(2, texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);//把texture[0]绑定到GL_TEXTURE0
+
     //设置各种环绕方式
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    int width, height, nrChannels;
+    triangleShader.setUniform1i("boxTexture", 0);
 
-    unsigned char *data = util::extractImageFromFile("container2.jpg", &width, &height, &nrChannels);
+    int width, height, nrChannels;
+    unsigned char *data = nullptr;
+    data = util::extractImageFromFile("container.jpg", &width, &height, &nrChannels);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     util::freeImage(data);
 
+    data = util::extractImageFromFile("awesomeface.png", &width, &height, &nrChannels);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    triangleShader.setUniform1i("smallTexture", 1);
+    util::freeImage(data);
+
+    //设置变换
+    glm::mat4 trans(1.0f);
+    trans = glm::translate(trans, glm::vec3(0., 0.5, 0.));
+    trans = glm::scale(trans, glm::vec3(0.1, 0.1, 0.1));
+    trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0, 0, 1));
+    triangleShader.setUniform4fv("transform", glm::value_ptr(trans));
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
-    int time = 0;
+
     double current_time = glfwGetTime();
     double last_time = current_time;
     double last_pass_time = current_time;
@@ -112,7 +135,8 @@ int main() {
             glClearColor(0.2f, 0.3f, 0.3f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-//            triangleShader.setUniform1f("time", (float)(time ++ % 11));
+
+//            trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0, 0, 1));
             glfwSwapBuffers(windows);
         }
         glfwPollEvents();

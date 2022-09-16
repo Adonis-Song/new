@@ -18,6 +18,9 @@ public:
     void use();
 
     void setUniform1f(const char* uName, float value);
+    void setUniform1i(const char* uName, int value);
+
+    void setUniform4fv(const char*, float* );
 
 private:
     unsigned int initShader(const char* code, unsigned int type);
